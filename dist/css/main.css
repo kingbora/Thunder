@@ -1,0 +1,14 @@
+body {
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+.area {
+  border: 1px solid #111;
+  margin: 40px auto auto auto;
+}
+.block {
+  background-color: #088000;
+  border: 1px solid #ccc;
+  float: left;
+}
