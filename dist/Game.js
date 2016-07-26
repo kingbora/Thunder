@@ -5,9 +5,9 @@ var Game = (function () {
         this.colNum = 10;
         this.rawNum = 10;
         this.width = 30;
-        this.bombNum = 5;
+        this.bombNum = 10;
         this.bombArray = [];
-        this.blockArray = [];
+        this.blockArray = [[], [], [], [], [], [], [], [], [], [], [], [], []];
         this.restBomb = this.bombNum;
     }
     Game.prototype.initUI = function () {
@@ -25,28 +25,32 @@ var Game = (function () {
                 block.style.height = this_1.width + "px";
                 block.style.lineHeight = this_1.width + "px";
                 var b;
-                b = new block_1.default(block, false, "");
+                b = new block_1.default(block, false, "", i, j, this_1.colNum, this_1.rawNum);
                 block.onmouseup = function (e) {
                     if (e.button == 0) {
-                        b.turn();
-                        if (b.getBomb()) {
-                            _this.turnOtherBomb();
-                            alert("Game Over!!!");
+                        if (!b.getFlag()) {
+                            _this.turn(b);
+                            if (b.getBomb()) {
+                                _this.turnOtherBomb();
+                                alert("Game Over!!!");
+                            }
                         }
                     }
                     else if (e.button == 2) {
                         if (b.getContent() == "1") {
                             b.setContent("");
+                            b.setFlag(false);
                             _this.restBomb++;
                         }
                         else {
                             b.setContent("1");
+                            b.setFlag(true);
                             _this.restBomb--;
                         }
                         document.getElementsByClassName('bomb')[0].innerHTML = _this.restBomb + "";
                     }
                 };
-                this_1.blockArray.push(b);
+                this_1.blockArray[i][j] = b;
                 this_1.area.appendChild(block);
             };
             var this_1 = this;
@@ -70,22 +74,80 @@ var Game = (function () {
     };
     Game.prototype.turnOtherBomb = function () {
         for (var i = 0; i < this.bombArray.length; i++) {
-            this.blockArray[this.bombArray[i]].turn();
+            this.turn(this.blockArray[this.bombArray[i].x][this.bombArray[i].y]);
+            this.blockArray[this.bombArray[i].x][this.bombArray[i].y].getElement().style.backgroundColor = "#000";
         }
     };
+    Game.prototype.turn = function (block) {
+        block.setTurn(true);
+        block.getElement().onmouseup = null;
+        if (block.getBlank()) {
+            this.turnAround(block);
+        }
+        else if (block.getBomb()) {
+            block.getElement().style.backgroundColor = "#000";
+        }
+        else {
+            block.getElement().style.backgroundColor = "#fff";
+            block.getElement().innerHTML = block.getInnerContent();
+        }
+    };
+    Game.prototype.isNull = function (Bomb) {
+        var i = Bomb.getX(), j = Bomb.getY();
+        for (var x = i - 1; x < i + 2; x++) {
+            for (var y = j - 1; y < j + 2; y++) {
+                if (((x != i) || (y != j)) && (x >= 0) && (y >= 0)
+                    && x < this.rawNum && y < this.colNum) {
+                    if (this.blockArray[x][y].getBomb() == false
+                        && this.blockArray[x][y].getTurn() == false) {
+                        this.turn(this.blockArray[x][y]);
+                    }
+                }
+            }
+        }
+    };
+    Game.prototype.turnAround = function (block) {
+        block.getElement().style.backgroundColor = "#fff";
+        block.getElement().innerHTML = block.getInnerContent();
+        this.isNull(block);
+    };
     Game.prototype.initNumber = function () {
-        var count = 0;
+        for (var i = 0; i < this.colNum; i++) {
+            for (var j = 0; j < this.rawNum; j++) {
+                var count = 0;
+                if (!this.blockArray[i][j].getBomb()) {
+                    for (var x = i - 1; x < i + 2; x++) {
+                        for (var y = j - 1; y < j + 2; y++) {
+                            if ((x >= 0) && (y >= 0) && (x < this.colNum) && (y < this.rawNum)) {
+                                if (this.blockArray[x][y].getBomb()) {
+                                    count++;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (count == 0) {
+                    this.blockArray[i][j].setInnerContent("");
+                    this.blockArray[i][j].setBlank(true);
+                }
+                else {
+                    this.blockArray[i][j].setInnerContent(count + "");
+                    this.blockArray[i][j].setBlank(false);
+                }
+            }
+        }
     };
     Game.prototype.randomBomb = function () {
         while (this.bombArray.length < this.bombNum) {
-            var x = Math.floor(Math.random() * (this.colNum * this.rawNum));
-            if (this.bombArray.indexOf(x) == -1) {
-                this.bombArray.push(x);
+            var x = Math.floor(Math.random() * this.colNum);
+            var y = Math.floor(Math.random() * this.rawNum);
+            if (this.bombArray.indexOf({ 'x': x, 'y': y }) == -1) {
+                this.bombArray.push({ 'x': x, 'y': y });
             }
         }
         console.log(this.bombArray);
         for (var i = 0; i < this.bombArray.length; i++) {
-            this.blockArray[this.bombArray[i]].setBomb(true);
+            this.blockArray[this.bombArray[i].x][this.bombArray[i].y].setBomb(true);
         }
     };
     return Game;

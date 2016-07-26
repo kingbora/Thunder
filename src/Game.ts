@@ -4,10 +4,10 @@ class Game {
   colNum: number = 10;
   rawNum: number = 10;
   width: number = 30;
-  bombNum: number = 5;
+  bombNum: number = 10;
   area: HTMLElement;
-  bombArray: number[] = [];
-  blockArray: Block[] = [];
+  bombArray: {x:number,y:number}[] = [];
+  blockArray: Block[][] = [[],[],[],[],[],[],[],[],[],[],[],[],[]];
   restBomb: number = this.bombNum;
 
   initUI(){
@@ -24,27 +24,31 @@ class Game {
         block.style.height = this.width + "px";
         block.style.lineHeight = this.width + "px";
         let b: Block;
-        b = new Block(block,false,"");
+        b = new Block(block,false,"",i,j,this.colNum,this.rawNum);
         block.onmouseup = (e)=>{
           if (e.button == 0) { // 鼠标左键按下
-            b.turn();
-            if (b.getBomb()) {
-              this.turnOtherBomb();
-              alert("Game Over!!!");
-              // window.location.reload();
+            if (!b.getFlag()) {
+              this.turn(b);
+              if (b.getBomb()) {
+                this.turnOtherBomb();
+                alert("Game Over!!!");
+                // window.location.reload();
+              }
             }
           } else if (e.button == 2) { //鼠标右键按下
             if (b.getContent() == "1") {
               b.setContent("");
+              b.setFlag(false);
               this.restBomb ++;
             } else {
               b.setContent("1");
+              b.setFlag(true);
               this.restBomb --;
             }
             document.getElementsByClassName('bomb')[0].innerHTML = this.restBomb +"";
           }
         };
-        this.blockArray.push(b);
+        this.blockArray[i][j] = b;
         this.area.appendChild(block);
       }
     }
@@ -71,28 +75,90 @@ class Game {
 
   turnOtherBomb() {
     for (var i = 0; i < this.bombArray.length; i ++) {
-      this.blockArray[this.bombArray[i]].turn();
+      this.turn(this.blockArray[this.bombArray[i].x][this.bombArray[i].y]);
+      this.blockArray[this.bombArray[i].x][this.bombArray[i].y].getElement().style.backgroundColor = "#000";
     }
   }
 
+  turn(block: Block) {
+    block.setTurn(true);
+    block.getElement().onmouseup = null;
+    if (block.getBlank()) {
+      this.turnAround(block);
+    } else if(block.getBomb()) {
+      block.getElement().style.backgroundColor = "#000";
+    } else {
+      block.getElement().style.backgroundColor = "#fff";
+      block.getElement().innerHTML = block.getInnerContent();
+    }
+  }
+
+  isNull(Bomb: Block):void {
+    var i:number = Bomb.getX(), j:number = Bomb.getY();
+
+    for (var x = i - 1; x < i + 2; x++) {
+      for (var y = j - 1; y < j + 2; y++) {
+        if ( ( (x != i) || (y != j)) && (x >= 0) && (y >= 0)
+            && x < this.rawNum && y < this.colNum) {
+          if (this.blockArray[x][y].getBomb() == false
+              && this.blockArray[x][y].getTurn() == false) {
+            this.turn(this.blockArray[x][y]);
+          }
+        }
+      }
+    }
+  }
+
+  turnAround(block: Block) {
+    block.getElement().style.backgroundColor = "#fff";
+    block.getElement().innerHTML = block.getInnerContent();
+    this.isNull(block);
+  }
+
   initNumber() {
-    var count = 0;
+    for( var i = 0; i < this.colNum; i ++) {
+      for (var j = 0; j < this.rawNum; j ++) {
+        //当方块本身无雷的情况下，统计周围雷数
+        var count: number = 0;
+        if (!this.blockArray[i][j].getBomb()) {
+          for (var x = i - 1; x < i + 2; x ++) {
+            for (var y = j - 1; y < j + 2; y ++) {
+              if ( (x >= 0) && (y >= 0) && (x < this.colNum) && (y < this.rawNum) ) {
+                if (this.blockArray[x][y].getBomb()) {
+                  count ++;
+                }
+              }
+            }
+          }
+        }
+
+        if (count == 0) {
+          this.blockArray[i][j].setInnerContent("");
+          this.blockArray[i][j].setBlank(true);
+        } else {
+          this.blockArray[i][j].setInnerContent(count + "");
+          this.blockArray[i][j].setBlank(false);
+        }
+
+      }
+    }
 
   }
 
   randomBomb() {
     //生成随机雷数组
     while(this.bombArray.length < this.bombNum) {
-      var x = Math.floor(Math.random()*(this.colNum*this.rawNum));
-      if (this.bombArray.indexOf(x) == -1) {
-        this.bombArray.push(x);
+      var x = Math.floor(Math.random()*this.colNum);
+      var y = Math.floor(Math.random()*this.rawNum);
+      if (this.bombArray.indexOf({'x':x,'y':y}) == -1) {
+        this.bombArray.push({'x':x,'y':y});
       }
     }
 
     console.log(this.bombArray);
     //初始化雷
     for (var i = 0; i < this.bombArray.length; i ++) {
-      this.blockArray[this.bombArray[i]].setBomb(true);
+      this.blockArray[this.bombArray[i].x][this.bombArray[i].y].setBomb(true);
     }
 
   }

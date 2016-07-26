@@ -11,4 +11,6 @@ body {
   background-color: #088000;
   border: 1px solid #ccc;
   float: left;
+  transition-property: background-color;
+  transition-duration: 0.3s;
 }
